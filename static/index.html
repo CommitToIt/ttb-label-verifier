@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TTB Label Verifier</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main>
+    <h1>TTB Label Verifier</h1>
+    <section id="upload-area" aria-label="Label upload">
+      <p>Drag label images here or choose files to begin.</p>
+      <input id="file-input" type="file" accept="image/*" multiple>
+    </section>
+    <section id="label-items" aria-live="polite"></section>
+    <button id="verify-button" type="button" disabled>Verify labels</button>
+    <section id="results" aria-live="polite"></section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
