@@ -10,5 +10,5 @@ async def verify(
     images: list[UploadFile] = File(...),
     applications: str = Form(...),
 ):
-    """Accept paired images and application data; implementation follows."""
+    """Extract structured fields for each uploaded image."""
     return await verify_items(images, applications)

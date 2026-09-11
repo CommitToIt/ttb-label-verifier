@@ -16,8 +16,8 @@ class LabelFields(BaseModel):
     net_contents: str | None = None
     bottler_name_address: str | None = None
     country_of_origin: str | None = None
-    government_warning: str | None = None
-    government_warning_bold_caps: bool | None = None
+    government_warning_text: str | None = None
+    government_warning_is_bold_and_caps: bool | None = None
     extraction_confidence: float | None = Field(default=None, ge=0, le=1)
 
 
