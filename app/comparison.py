@@ -11,7 +11,6 @@ REQUIRED_GOVERNMENT_WARNING = (
     "ability to drive a car or operate machinery, and may cause health "
     "problems."
 )
-FUZZY_PASS_THRESHOLD = 90
 FUZZY_REVIEW_THRESHOLD = 75
 ALCOHOL_TOLERANCE = 0.1
 
@@ -29,9 +28,11 @@ def _normalize(value: str | None) -> str:
 def _fuzzy_result(field_name: str, extracted: str | None, submitted: str) -> FieldResult:
     if not extracted:
         return _result("needs-review", f"Could not reliably extract {field_name} from the label.")
-    score = round(ratio(_normalize(extracted), _normalize(submitted)), 1)
-    if score >= FUZZY_PASS_THRESHOLD:
-        return _result("pass", score=score)
+    norm_extracted = _normalize(extracted)
+    norm_submitted = _normalize(submitted)
+    if norm_extracted == norm_submitted:
+        return _result("pass", score=100.0)
+    score = round(ratio(norm_extracted, norm_submitted), 1)
     if score >= FUZZY_REVIEW_THRESHOLD:
         return _result(
             "needs-review", f"{field_name.title()} similarity is borderline ({score:.0f}%).", score=score

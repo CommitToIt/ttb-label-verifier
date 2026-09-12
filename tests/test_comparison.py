@@ -40,6 +40,14 @@ def test_brand_name_case_difference_passes() -> None:
     assert compare_label_fields(extracted(brand_name=" EXAMPLE  GIN "), application())["brand_name"].status == "pass"
 
 
+def test_brand_name_near_miss_returns_needs_review() -> None:
+    result = compare_label_fields(
+        extracted(brand_name="Old Tom Distillery"),
+        application(brand_name="Old Tom Distiller"),
+    )
+    assert result["brand_name"].status == "needs-review"
+
+
 def test_genuinely_different_brand_name_fails() -> None:
     assert compare_label_fields(extracted(brand_name="Different Vodka"), application())["brand_name"].status == "fail"
 
