@@ -25,6 +25,8 @@
     .file-button, button { display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 0.35rem; padding: 0.7rem 1rem; font: inherit; font-weight: 650; cursor: pointer; }
     .file-button, #verify-button { background: #1f6f78; color: white; }
     .file-button:hover, #verify-button:hover:not(:disabled) { background: #185861; }
+    #clear-button { background: #e0e5e1; color: #33424d; }
+    #clear-button:hover { background: #d0d7d2; }
     input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     .items { display: grid; gap: 1rem; margin-top: 1.25rem; }
     .label-item { display: grid; grid-template-columns: minmax(10rem, 15rem) 1fr; gap: 1.25rem; padding: 1rem; border: 1px solid #d4d9d5; border-radius: 0.5rem; background: #fffdf8; }
@@ -40,9 +42,8 @@
     .actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 1.25rem; }
     #verify-button:disabled { cursor: not-allowed; opacity: 0.5; }
     .message { margin: 1rem 0 0; color: #8a3f2f; }
-    .results { margin-top: 2rem; }
-    .overall { display: inline-block; margin: 0.8rem 0 1rem; border-radius: 0.3rem; padding: 0.45rem 0.7rem; font-weight: 750; text-transform: capitalize; }
-    .result-list { display: grid; gap: 0.8rem; }
+    .overall-indicator { display: none; align-items: center; margin-left: auto; border-radius: 0.3rem; padding: 0.45rem 0.7rem; font-weight: 750; text-transform: capitalize; }
+    .card-results { margin-top: 1rem; border-top: 1px solid #d4d9d5; padding-top: 0.8rem; }
     .result-item { border-left: 0.35rem solid #778b96; padding: 0.8rem 1rem; background: #fffdf8; }
     .result-item.status-pass, .status-pass { border-color: #2f815d; color: #205c43; }
     .result-item.status-fail, .status-fail { border-color: #b44f43; color: #87352e; }
@@ -65,13 +66,15 @@
       <p>Drop label images here or choose files.</p>
       <label class="file-button" for="file-input">Choose images</label>
       <input id="file-input" type="file" accept="image/*" multiple>
+      <p style="margin: 0.85rem 0 0; font-size: 0.85rem; color: #53636e;">Accepts JPEG, PNG, GIF, WebP, BMP, or TIFF images, up to 10MB</p>
     </section>
-    <section id="label-items" class="items" aria-live="polite"></section>
     <div class="actions">
       <button id="verify-button" type="button" disabled>Verify labels</button>
+      <button id="clear-button" type="button">Clear</button>
+      <span id="overall-status" class="overall-indicator" role="status"></span>
       <span id="request-message" class="message" role="status"></span>
     </div>
-    <section id="results" class="results" aria-live="polite"></section>
+    <section id="label-items" class="items" aria-live="polite"></section>
   </main>
   <script src="/app.js"></script>
 </body>

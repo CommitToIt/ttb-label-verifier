@@ -2,7 +2,8 @@ const fileInput = document.querySelector("#file-input");
 const uploadArea = document.querySelector("#upload-area");
 const labelItems = document.querySelector("#label-items");
 const verifyButton = document.querySelector("#verify-button");
-const results = document.querySelector("#results");
+const clearButton = document.querySelector("#clear-button");
+const overallStatus = document.querySelector("#overall-status");
 const requestMessage = document.querySelector("#request-message");
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const items = [];
@@ -16,6 +17,81 @@ const fields = [
   ["country_of_origin", "Country of origin"],
 ];
 
+const SAMPLE_SCENARIOS = [
+  {
+    filename: "1_clean_pass.jpg",
+    data: {
+      brand_name: "OLD TOM DISTILLERY",
+      class_type: "Kentucky Straight Bourbon Whiskey",
+      alcohol_content: "45% Alc./Vol. (90 Proof)",
+      net_contents: "750 mL",
+      bottler_name_address: "Bottled by Old Tom Distilling Co., Louisville, KY",
+      country_of_origin: "",
+      is_import: false,
+    },
+  },
+  {
+    filename: "2_brand_case_diff.jpg",
+    data: {
+      brand_name: "Stone's Throw",
+      class_type: "American Dry Gin",
+      alcohol_content: "47% Alc./Vol.",
+      net_contents: "750 mL",
+      bottler_name_address: "Distilled by Stone's Throw Spirits, Portland, OR",
+      country_of_origin: "",
+      is_import: false,
+    },
+  },
+  {
+    filename: "3_warning_format_violation.jpg",
+    data: {
+      brand_name: "BLUE RIDGE RYE",
+      class_type: "Straight Rye Whiskey",
+      alcohol_content: "46% Alc./Vol.",
+      net_contents: "750 mL",
+      bottler_name_address: "Blue Ridge Distilling Co., Asheville, NC",
+      country_of_origin: "",
+      is_import: false,
+    },
+  },
+  {
+    filename: "4_abv_format_diff.jpg",
+    data: {
+      brand_name: "PRAIRIE HARVEST",
+      class_type: "Vodka",
+      alcohol_content: "80 Proof",
+      net_contents: "750 mL",
+      bottler_name_address: "Prairie Harvest Distilling, Omaha, NE",
+      country_of_origin: "",
+      is_import: false,
+    },
+  },
+  {
+    filename: "5_missing_country_of_origin.jpg",
+    data: {
+      brand_name: "HIGHLAND RESERVE",
+      class_type: "Single Malt Scotch Whisky",
+      alcohol_content: "43% Alc./Vol.",
+      net_contents: "700 mL",
+      bottler_name_address: "Highland Distillers Ltd., Edinburgh, Scotland",
+      country_of_origin: "",
+      is_import: true,
+    },
+  },
+  {
+    filename: "6_genuine_mismatch.jpg",
+    data: {
+      brand_name: "SILVER SHORES TEQUILA",
+      class_type: "Dark Rum",
+      alcohol_content: "40% Alc./Vol.",
+      net_contents: "750 mL",
+      bottler_name_address: "Oak & Iron Distilling Co., Tampa, FL",
+      country_of_origin: "",
+      is_import: false,
+    },
+  },
+];
+
 function setMessage(message = "") {
   requestMessage.textContent = message;
 }
@@ -26,6 +102,7 @@ function makeInput(item, key, labelText) {
   const input = document.createElement("input");
   input.type = "text";
   input.name = key;
+  input.value = item.data[key] || "";
   input.autocomplete = "off";
   input.addEventListener("input", () => { item.data[key] = input.value; });
   label.append(input);
@@ -81,7 +158,17 @@ function renderItem(item) {
 
   const countryInput = form.querySelector('input[name="country_of_origin"]');
   countryInput.disabled = !item.data.is_import;
-  article.append(previewColumn, form);
+
+  const contentColumn = document.createElement("div");
+  contentColumn.className = "card-content";
+  contentColumn.append(form);
+
+  const cardResults = document.createElement("div");
+  cardResults.className = "card-results";
+  cardResults.style.display = "none";
+  contentColumn.append(cardResults);
+
+  article.append(previewColumn, contentColumn);
   labelItems.append(article);
 }
 
@@ -92,7 +179,7 @@ function updateVerifyButton() {
 function addFiles(files) {
   for (const file of files) {
     if (!file.type.startsWith("image/")) {
-      setMessage(`${file.name} was skipped because it is not an image.`);
+      setMessage(`${file.name} was skipped because it doesn't appear to be an image.`);
       continue;
     }
     if (file.size > MAX_FILE_SIZE) {
@@ -134,7 +221,16 @@ uploadArea.addEventListener("drop", (event) => {
 verifyButton.addEventListener("click", async () => {
   verifyButton.disabled = true;
   setMessage("Verifying labels...");
-  results.replaceChildren();
+  overallStatus.style.display = "none";
+  overallStatus.className = "overall-indicator";
+  overallStatus.textContent = "";
+
+  const allCardResults = labelItems.querySelectorAll(".card-results");
+  for (const cr of allCardResults) {
+    cr.replaceChildren();
+    cr.style.display = "none";
+  }
+
   const formData = new FormData();
   for (const item of items) formData.append("images", item.file, item.file.name);
   formData.append("applications", JSON.stringify(items.map((item) => item.data)));
@@ -157,20 +253,29 @@ function statusLabel(status) {
 }
 
 function renderResults(body) {
-  const heading = document.createElement("h2");
-  heading.textContent = "Verification results";
-  const overall = document.createElement("div");
-  overall.className = `overall status-${body.status}`;
-  overall.textContent = `Overall: ${statusLabel(body.status)}`;
-  const list = document.createElement("div");
-  list.className = "result-list";
+  if (overallStatus) {
+    overallStatus.className = `overall-indicator status-${body.status}`;
+    overallStatus.textContent = `Overall: ${statusLabel(body.status)}`;
+    overallStatus.style.display = "inline-flex";
+  }
+
+  const articles = labelItems.querySelectorAll(".label-item");
 
   for (const result of body.results || []) {
-    const item = document.createElement("article");
-    item.className = `result-item status-${result.status}`;
+    const card = articles[result.item_index];
+    if (!card) continue;
+
+    const cardResults = card.querySelector(".card-results");
+    if (!cardResults) continue;
+    cardResults.replaceChildren();
+
+    const resultBox = document.createElement("div");
+    resultBox.className = `result-item status-${result.status}`;
+
     const title = document.createElement("h3");
     title.textContent = `Label ${result.item_index + 1}: ${statusLabel(result.status)}`;
-    item.append(title);
+    resultBox.append(title);
+
     const fieldList = document.createElement("div");
     fieldList.className = "field-results";
     for (const [name, field] of Object.entries(result.fields || {})) {
@@ -190,8 +295,54 @@ function renderResults(body) {
       }
       fieldList.append(fieldElement);
     }
-    item.append(fieldList);
-    list.append(item);
+    resultBox.append(fieldList);
+    cardResults.append(resultBox);
+    cardResults.style.display = "block";
   }
-  results.append(heading, overall, list);
 }
+
+function clearAll() {
+  for (const item of items) {
+    if (item.previewUrl && item.previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
+  }
+  items.length = 0;
+  labelItems.replaceChildren();
+  if (overallStatus) {
+    overallStatus.style.display = "none";
+    overallStatus.className = "overall-indicator";
+    overallStatus.textContent = "";
+  }
+  setMessage("");
+  updateVerifyButton();
+}
+
+if (clearButton) {
+  clearButton.addEventListener("click", clearAll);
+}
+
+async function loadSampleScenarios() {
+  for (const scenario of SAMPLE_SCENARIOS) {
+    try {
+      const sampleUrl = `/samples/${scenario.filename}`;
+      const response = await fetch(sampleUrl);
+      if (!response.ok) continue;
+      const blob = await response.blob();
+      const file = new File([blob], scenario.filename, { type: blob.type || "image/jpeg" });
+      const item = {
+        id: crypto.randomUUID(),
+        file,
+        previewUrl: sampleUrl,
+        data: { ...scenario.data },
+      };
+      items.push(item);
+      renderItem(item);
+    } catch (err) {
+      console.warn("Could not load sample:", scenario.filename, err);
+    }
+  }
+  updateVerifyButton();
+}
+
+loadSampleScenarios();

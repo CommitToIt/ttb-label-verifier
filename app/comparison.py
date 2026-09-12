@@ -74,6 +74,14 @@ def _exact_result(field_name: str, extracted: str | None, submitted: str | None)
     return _result("fail", f"Label {field_name} does not exactly match the submitted value.")
 
 
+def _warning_text_result(extracted: str | None) -> FieldResult:
+    if extracted is None:
+        return _result("needs-review", "Could not reliably extract government warning text from the label.")
+    if extracted == REQUIRED_GOVERNMENT_WARNING:
+        return _result("pass")
+    return _result("fail", "The government warning text does not exactly match the required statement.")
+
+
 def compare_label_fields(
     extracted: LabelFields, submitted: ApplicationData
 ) -> dict[str, FieldResult]:
@@ -85,9 +93,7 @@ def compare_label_fields(
         "bottler_name_address": _fuzzy_result(
             "bottler name/address", extracted.bottler_name_address, submitted.bottler_name_address
         ),
-        "government_warning_text": _exact_result(
-            "government warning text", extracted.government_warning_text, REQUIRED_GOVERNMENT_WARNING
-        ),
+        "government_warning_text": _warning_text_result(extracted.government_warning_text),
     }
 
     if extracted.government_warning_text == REQUIRED_GOVERNMENT_WARNING:

@@ -187,7 +187,14 @@ def test_batch_unexpected_exception_in_one_item_preserves_others(monkeypatch) ->
 
     assert results[1]["status"] == "needs-review"
     assert "processing_error" in results[1]["fields"]
-    assert "Unexpected error" in results[1]["fields"]["processing_error"]["reason"] or "Unexpected boom" in results[1]["fields"]["processing_error"]["reason"]
+    assert (
+        results[1]["fields"]["processing_error"]["reason"]
+        == "An unexpected error occurred while processing this item."
+    )
+    assert (
+        results[1]["reason"]
+        == "An unexpected error occurred while processing this item."
+    )
 
     assert results[2]["status"] == "pass"
     assert results[2]["fields"]["brand_name"]["status"] == "pass"

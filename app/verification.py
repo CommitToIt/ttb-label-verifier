@@ -114,6 +114,7 @@ async def verify_items(images: list[UploadFile], applications: str) -> dict[str,
             if isinstance(res, BaseException):
                 logger.error("Unexpected error processing item %d: %s", index, res, exc_info=res)
                 submitted_item = submitted[index] if index < len(submitted) else {}
+                reason = "An unexpected error occurred while processing this item."
                 results.append(
                     {
                         "item_index": index,
@@ -124,10 +125,10 @@ async def verify_items(images: list[UploadFile], applications: str) -> dict[str,
                         "fields": {
                             "processing_error": {
                                 "status": "needs-review",
-                                "reason": f"An unexpected error occurred during processing: {res}",
+                                "reason": reason,
                             }
                         },
-                        "reason": f"An unexpected error occurred during processing: {res}",
+                        "reason": reason,
                     }
                 )
             else:
