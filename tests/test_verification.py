@@ -191,3 +191,47 @@ def test_batch_unexpected_exception_in_one_item_preserves_others(monkeypatch) ->
 
     assert results[2]["status"] == "pass"
     assert results[2]["fields"]["brand_name"]["status"] == "pass"
+
+
+def test_verify_items_logging_emits_timing_outcomes_and_no_sensitive_values(
+    monkeypatch, caplog
+) -> None:
+    import logging
+
+    async def fake_extract(image_bytes: bytes, media_type: str, **kwargs) -> LabelFields:
+        return extracted(
+            brand_name="Extracted Secret Brand",
+            government_warning_text=REQUIRED_GOVERNMENT_WARNING,
+            extraction_confidence=0.92,
+        )
+
+    monkeypatch.setattr("app.verification.extract_label_fields", fake_extract)
+
+    secret_submitted_brand = "Secret Submitted Brand"
+    sub = submission()
+    sub["brand_name"] = secret_submitted_brand
+
+    with caplog.at_level(logging.INFO):
+        response = asyncio.run(verify_items([upload()], json.dumps([sub])))
+
+    assert response["status"] in ("pass", "fail", "needs-review")
+
+    log_text = caplog.text
+    # 1. Start and finish logs with image count and seconds
+    assert "Starting verification batch for 1 image(s)" in log_text
+    assert "Finished verification batch for 1 image(s) in" in log_text
+    assert "seconds" in log_text
+
+    # 2. Outcome summary
+    assert "Batch outcome summary:" in log_text
+    assert "pass=" in log_text
+
+    # 3. Field names, status, and numeric scores
+    assert "brand_name:" in log_text
+    assert "score=" in log_text
+    assert "extraction_confidence=0.92" in log_text
+
+    # 4. Never log the extracted or submitted text values or raw image bytes
+    assert secret_submitted_brand not in log_text
+    assert "Extracted Secret Brand" not in log_text
+    assert "image-bytes" not in log_text

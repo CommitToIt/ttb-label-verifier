@@ -16,8 +16,10 @@ FUZZY_REVIEW_THRESHOLD = 75
 ALCOHOL_TOLERANCE = 0.1
 
 
-def _result(status: str, reason: str | None = None) -> FieldResult:
-    return FieldResult(status=status, reason=reason)
+def _result(
+    status: str, reason: str | None = None, score: float | None = None
+) -> FieldResult:
+    return FieldResult(status=status, reason=reason, score=score)
 
 
 def _normalize(value: str | None) -> str:
@@ -27,12 +29,14 @@ def _normalize(value: str | None) -> str:
 def _fuzzy_result(field_name: str, extracted: str | None, submitted: str) -> FieldResult:
     if not extracted:
         return _result("needs-review", f"Could not reliably extract {field_name} from the label.")
-    score = ratio(_normalize(extracted), _normalize(submitted))
+    score = round(ratio(_normalize(extracted), _normalize(submitted)), 1)
     if score >= FUZZY_PASS_THRESHOLD:
-        return _result("pass")
+        return _result("pass", score=score)
     if score >= FUZZY_REVIEW_THRESHOLD:
-        return _result("needs-review", f"{field_name.title()} similarity is borderline ({score:.0f}%).")
-    return _result("fail", f"Label {field_name} does not match the submitted value.")
+        return _result(
+            "needs-review", f"{field_name.title()} similarity is borderline ({score:.0f}%).", score=score
+        )
+    return _result("fail", f"Label {field_name} does not match the submitted value.", score=score)
 
 
 def _alcohol_value(value: str | None) -> float | None:

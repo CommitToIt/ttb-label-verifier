@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+import time
+from collections import Counter
 from typing import Any
 
 from anthropic import AsyncAnthropic
@@ -19,6 +21,10 @@ LOW_EXTRACTION_CONFIDENCE_THRESHOLD = 0.3
 
 async def verify_items(images: list[UploadFile], applications: str) -> dict[str, Any]:
     """Extract fields for each uploaded label and expose review-safe results concurrently."""
+    start_time = time.perf_counter()
+    image_count = len(images)
+    logger.info("Starting verification batch for %d image(s)", image_count)
+
     try:
         submitted = json.loads(applications)
     except json.JSONDecodeError:
@@ -132,6 +138,39 @@ async def verify_items(images: list[UploadFile], applications: str) -> dict[str,
                 await client.close()
             except Exception as exc:
                 logger.warning("Shared Claude client cleanup failed: %s", type(exc).__name__)
+
+    duration_seconds = time.perf_counter() - start_time
+    logger.info(
+        "Finished verification batch for %d image(s) in %.3f seconds",
+        image_count,
+        duration_seconds,
+    )
+
+    counts = Counter(item["status"] for item in results)
+    logger.info(
+        "Batch outcome summary: pass=%d, fail=%d, needs-review=%d",
+        counts.get("pass", 0),
+        counts.get("fail", 0),
+        counts.get("needs-review", 0),
+    )
+
+    for item in results:
+        conf = item.get("extraction_confidence")
+        conf_str = f" (extraction_confidence={conf})" if conf is not None else ""
+        logger.info(
+            "Item %d outcome: status=%s%s",
+            item["item_index"],
+            item["status"],
+            conf_str,
+        )
+        for field_name, field_info in item.get("fields", {}).items():
+            status = field_info.get("status")
+            score = field_info.get("score")
+            if score is not None:
+                formatted_score = int(score) if isinstance(score, (int, float)) and score.is_integer() else score
+                logger.info("  %s: %s (score=%s)", field_name, status, formatted_score)
+            else:
+                logger.info("  %s: %s", field_name, status)
 
     return {
         "status": (

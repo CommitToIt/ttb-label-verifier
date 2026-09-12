@@ -34,6 +34,7 @@ class ApplicationData(BaseModel):
 class FieldResult(BaseModel):
     status: VerificationStatus
     reason: str | None = None
+    score: float | None = None
 
 
 class VerificationResult(BaseModel):
