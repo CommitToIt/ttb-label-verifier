@@ -5,6 +5,8 @@ const verifyButton = document.querySelector("#verify-button");
 const clearButton = document.querySelector("#clear-button");
 const overallStatus = document.querySelector("#overall-status");
 const requestMessage = document.querySelector("#request-message");
+const lightbox = document.querySelector("#lightbox");
+const lightboxImg = document.querySelector("#lightbox-img");
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const items = [];
 
@@ -96,17 +98,59 @@ function setMessage(message = "") {
   requestMessage.textContent = message;
 }
 
-function makeInput(item, key, labelText) {
+function makeFieldGroup(item, key, labelText) {
+  const group = document.createElement("div");
+  group.className = "field-group";
+  group.dataset.fieldKey = key;
+
+  const header = document.createElement("div");
+  header.className = "field-header";
+
   const label = document.createElement("label");
+  label.className = "field-label";
   label.textContent = labelText;
+  label.htmlFor = `input-${item.id}-${key}`;
+
+  header.append(label);
+
+  const reason = document.createElement("div");
+  reason.className = "field-reason";
+  reason.style.display = "none";
+
   const input = document.createElement("input");
   input.type = "text";
+  input.id = `input-${item.id}-${key}`;
   input.name = key;
   input.value = item.data[key] || "";
   input.autocomplete = "off";
   input.addEventListener("input", () => { item.data[key] = input.value; });
-  label.append(input);
-  return label;
+
+  group.append(header, reason, input);
+  return group;
+}
+
+function openLightbox(url, altText) {
+  if (!lightbox || !lightboxImg) return;
+  lightboxImg.src = url;
+  lightboxImg.alt = altText || "Enlarged label view";
+  lightbox.classList.add("is-open");
+  lightbox.setAttribute("aria-hidden", "false");
+}
+
+function closeLightbox() {
+  if (!lightbox) return;
+  lightbox.classList.remove("is-open");
+  lightbox.setAttribute("aria-hidden", "true");
+  if (lightboxImg) lightboxImg.src = "";
+}
+
+if (lightbox) {
+  lightbox.addEventListener("click", closeLightbox);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && lightbox.classList.contains("is-open")) {
+      closeLightbox();
+    }
+  });
 }
 
 function renderItem(item) {
@@ -119,6 +163,8 @@ function renderItem(item) {
   preview.className = "preview";
   preview.src = item.previewUrl;
   preview.alt = `Preview of ${item.file.name}`;
+  preview.title = "Click to enlarge";
+  preview.addEventListener("click", () => openLightbox(item.previewUrl, `Enlarged view of ${item.file.name}`));
   const fileName = document.createElement("p");
   fileName.className = "file-name";
   fileName.textContent = item.file.name;
@@ -134,9 +180,22 @@ function renderItem(item) {
   });
   previewColumn.append(preview, fileName, remove);
 
+  const contentColumn = document.createElement("div");
+  contentColumn.className = "card-content";
+
+  const cardHeader = document.createElement("div");
+  cardHeader.className = "card-header";
+  const cardTitle = document.createElement("h3");
+  cardTitle.className = "card-title";
+  cardTitle.textContent = `Label ${items.indexOf(item) + 1}`;
+  const cardBadge = document.createElement("span");
+  cardBadge.className = "card-badge";
+  cardHeader.append(cardTitle, cardBadge);
+  contentColumn.append(cardHeader);
+
   const form = document.createElement("div");
   form.className = "form-grid";
-  for (const [key, labelText] of fields) form.append(makeInput(item, key, labelText));
+  for (const [key, labelText] of fields) form.append(makeFieldGroup(item, key, labelText));
 
   const importWrapper = document.createElement("div");
   importWrapper.className = "import-control";
@@ -159,14 +218,17 @@ function renderItem(item) {
   const countryInput = form.querySelector('input[name="country_of_origin"]');
   countryInput.disabled = !item.data.is_import;
 
-  const contentColumn = document.createElement("div");
-  contentColumn.className = "card-content";
   contentColumn.append(form);
 
-  const cardResults = document.createElement("div");
-  cardResults.className = "card-results";
-  cardResults.style.display = "none";
-  contentColumn.append(cardResults);
+  const warningSection = document.createElement("div");
+  warningSection.className = "warning-section";
+  const warnHeading = document.createElement("h4");
+  warnHeading.className = "warning-heading";
+  warnHeading.textContent = "Government warning";
+  const warnGrid = document.createElement("div");
+  warnGrid.className = "warning-grid";
+  warningSection.append(warnHeading, warnGrid);
+  contentColumn.append(warningSection);
 
   article.append(previewColumn, contentColumn);
   labelItems.append(article);
@@ -218,18 +280,47 @@ uploadArea.addEventListener("drop", (event) => {
   addFiles(event.dataTransfer.files);
 });
 
+function resetCardResults() {
+  const articles = labelItems.querySelectorAll(".label-item");
+  for (const card of articles) {
+    const cardBadge = card.querySelector(".card-badge");
+    if (cardBadge) {
+      cardBadge.style.display = "none";
+      cardBadge.className = "card-badge";
+      cardBadge.textContent = "";
+    }
+
+    const fieldGroups = card.querySelectorAll(".field-group");
+    for (const fg of fieldGroups) {
+      const header = fg.querySelector(".field-header");
+      if (header) {
+        header.className = "field-header";
+      }
+      const reason = fg.querySelector(".field-reason");
+      if (reason) {
+        reason.style.display = "none";
+        reason.textContent = "";
+      }
+    }
+
+    const warnSection = card.querySelector(".warning-section");
+    if (warnSection) {
+      warnSection.style.display = "none";
+      const warnGrid = warnSection.querySelector(".warning-grid");
+      if (warnGrid) warnGrid.replaceChildren();
+    }
+  }
+}
+
 verifyButton.addEventListener("click", async () => {
   verifyButton.disabled = true;
   setMessage("Verifying labels...");
-  overallStatus.style.display = "none";
-  overallStatus.className = "overall-indicator";
-  overallStatus.textContent = "";
-
-  const allCardResults = labelItems.querySelectorAll(".card-results");
-  for (const cr of allCardResults) {
-    cr.replaceChildren();
-    cr.style.display = "none";
+  if (overallStatus) {
+    overallStatus.style.display = "none";
+    overallStatus.className = "overall-indicator";
+    overallStatus.textContent = "";
   }
+  resetCardResults();
 
   const formData = new FormData();
   for (const item of items) formData.append("images", item.file, item.file.name);
@@ -265,39 +356,137 @@ function renderResults(body) {
     const card = articles[result.item_index];
     if (!card) continue;
 
-    const cardResults = card.querySelector(".card-results");
-    if (!cardResults) continue;
-    cardResults.replaceChildren();
-
-    const resultBox = document.createElement("div");
-    resultBox.className = `result-item status-${result.status}`;
-
-    const title = document.createElement("h3");
-    title.textContent = `Label ${result.item_index + 1}: ${statusLabel(result.status)}`;
-    resultBox.append(title);
-
-    const fieldList = document.createElement("div");
-    fieldList.className = "field-results";
-    for (const [name, field] of Object.entries(result.fields || {})) {
-      const fieldElement = document.createElement("div");
-      fieldElement.className = `field-result status-${field.status}`;
-      const fieldName = document.createElement("span");
-      fieldName.className = "field-name";
-      fieldName.textContent = name.replaceAll("_", " ");
-      const fieldStatus = document.createElement("strong");
-      fieldStatus.textContent = statusLabel(field.status);
-      fieldElement.append(fieldName, fieldStatus);
-      if (field.reason) {
-        const reason = document.createElement("span");
-        reason.className = "field-reason";
-        reason.textContent = field.reason;
-        fieldElement.append(reason);
-      }
-      fieldList.append(fieldElement);
+    // 1. Card overall status badge at top
+    const cardBadge = card.querySelector(".card-badge");
+    if (cardBadge) {
+      cardBadge.className = `card-badge badge-${result.status}`;
+      cardBadge.textContent = statusLabel(result.status);
+      cardBadge.style.display = "inline-block";
     }
-    resultBox.append(fieldList);
-    cardResults.append(resultBox);
-    cardResults.style.display = "block";
+
+    const fieldResults = result.fields || {};
+
+    // 2 & 3. Populate each form field's status background and reason directly above input
+    const formFieldKeys = [
+      "brand_name",
+      "class_type",
+      "alcohol_content",
+      "net_contents",
+      "bottler_name_address",
+      "country_of_origin",
+    ];
+
+    for (const key of formFieldKeys) {
+      const fieldGroup = card.querySelector(`.field-group[data-field-key="${key}"]`);
+      if (!fieldGroup) continue;
+
+      const fResult = fieldResults[key];
+      const header = fieldGroup.querySelector(".field-header");
+      const reasonEl = fieldGroup.querySelector(".field-reason");
+
+      // country_of_origin only shows if it was evaluated (is_import was true)
+      if (fResult && (key !== "country_of_origin" || result.submitted?.is_import)) {
+        if (header) {
+          header.className = `field-header header-${fResult.status}`;
+        }
+        if (reasonEl) {
+          if (fResult.reason) {
+            reasonEl.textContent = fResult.reason;
+            reasonEl.style.display = "block";
+          } else {
+            reasonEl.style.display = "none";
+            reasonEl.textContent = "";
+          }
+        }
+      } else {
+        if (header) {
+          header.className = "field-header";
+        }
+        if (reasonEl) {
+          reasonEl.style.display = "none";
+          reasonEl.textContent = "";
+        }
+      }
+    }
+
+    // 4. Warning section for warning text & formatting results
+    const warnSection = card.querySelector(".warning-section");
+    const warnGrid = card.querySelector(".warning-grid");
+    if (warnSection && warnGrid) {
+      warnGrid.replaceChildren();
+      const warnFields = [
+        ["government_warning_text", "Statutory Warning Text"],
+        ["government_warning_is_bold_and_caps", "Heading Format (Bold & Caps)"],
+      ];
+
+      let hasWarningResults = false;
+      for (const [wKey, wLabel] of warnFields) {
+        const wResult = fieldResults[wKey];
+        if (!wResult) continue;
+        hasWarningResults = true;
+
+        const wItem = document.createElement("div");
+        wItem.className = `warning-item status-${wResult.status}`;
+
+        const wHeader = document.createElement("div");
+        wHeader.className = "field-header";
+
+        const wLabelEl = document.createElement("span");
+        wLabelEl.className = "field-label";
+        wLabelEl.textContent = wLabel;
+
+        const wBadge = document.createElement("span");
+        wBadge.className = `field-badge status-${wResult.status}`;
+        wBadge.textContent = statusLabel(wResult.status);
+
+        wHeader.append(wLabelEl, wBadge);
+        wItem.append(wHeader);
+
+        if (wResult.reason) {
+          const wReason = document.createElement("div");
+          wReason.className = "field-reason";
+          wReason.textContent = wResult.reason;
+          wItem.append(wReason);
+        }
+
+        warnGrid.append(wItem);
+      }
+
+      // Also display image_upload or processing_error if present
+      for (const errKey of ["image_upload", "processing_error"]) {
+        const errResult = fieldResults[errKey];
+        if (!errResult) continue;
+        hasWarningResults = true;
+
+        const errItem = document.createElement("div");
+        errItem.className = `warning-item status-${errResult.status}`;
+
+        const errHeader = document.createElement("div");
+        errHeader.className = "field-header";
+
+        const errLabelEl = document.createElement("span");
+        errLabelEl.className = "field-label";
+        errLabelEl.textContent = errKey.replace("_", " ");
+
+        const errBadge = document.createElement("span");
+        errBadge.className = `field-badge status-${errResult.status}`;
+        errBadge.textContent = statusLabel(errResult.status);
+
+        errHeader.append(errLabelEl, errBadge);
+        errItem.append(errHeader);
+
+        if (errResult.reason) {
+          const errReason = document.createElement("div");
+          errReason.className = "field-reason";
+          errReason.textContent = errResult.reason;
+          errItem.append(errReason);
+        }
+
+        warnGrid.append(errItem);
+      }
+
+      warnSection.style.display = hasWarningResults ? "block" : "none";
+    }
   }
 }
 

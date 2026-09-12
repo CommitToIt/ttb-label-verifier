@@ -128,8 +128,77 @@ def test_country_of_origin_case_difference_passes() -> None:
     assert compare_label_fields(extracted(country_of_origin=" INDIA "), application())["country_of_origin"].status == "pass"
 
 
+def test_country_of_origin_containment_passes() -> None:
+    result = compare_label_fields(
+        extracted(country_of_origin="Product of Scotland"),
+        application(country_of_origin="Scotland"),
+    )
+    assert result["country_of_origin"].status == "pass"
+
+
+def test_country_of_origin_containment_reverse_passes() -> None:
+    result = compare_label_fields(
+        extracted(country_of_origin="Scotland"),
+        application(country_of_origin="Product of Scotland"),
+    )
+    assert result["country_of_origin"].status == "pass"
+
+
 def test_genuinely_different_country_of_origin_fails() -> None:
     assert compare_label_fields(extracted(country_of_origin="Canada"), application())["country_of_origin"].status == "fail"
+
+
+def test_country_of_origin_containment_mismatch_fails() -> None:
+    result = compare_label_fields(
+        extracted(country_of_origin="Product of Scotland"),
+        application(country_of_origin="France"),
+    )
+    assert result["country_of_origin"].status == "fail"
+
+
+def test_country_of_origin_empty_extracted_returns_needs_review() -> None:
+    result = compare_label_fields(
+        extracted(country_of_origin=""),
+        application(country_of_origin="Scotland"),
+    )
+    assert result["country_of_origin"].status == "needs-review"
+    assert result["country_of_origin"].reason == "Could not reliably extract country of origin from the label."
+
+
+def test_country_of_origin_none_extracted_returns_needs_review() -> None:
+    result = compare_label_fields(
+        extracted(country_of_origin=None),
+        application(country_of_origin="Scotland"),
+    )
+    assert result["country_of_origin"].status == "needs-review"
+    assert result["country_of_origin"].reason == "Could not reliably extract country of origin from the label."
+
+
+def test_country_of_origin_empty_submitted_returns_needs_review() -> None:
+    result = compare_label_fields(
+        extracted(country_of_origin="Scotland"),
+        application(country_of_origin=""),
+    )
+    assert result["country_of_origin"].status == "needs-review"
+    assert result["country_of_origin"].reason == "No country of origin was submitted to compare against the label."
+
+
+def test_fuzzy_field_empty_extracted_returns_needs_review() -> None:
+    result = compare_label_fields(
+        extracted(brand_name=""),
+        application(brand_name="Old Tom"),
+    )
+    assert result["brand_name"].status == "needs-review"
+    assert result["brand_name"].reason == "Could not reliably extract brand name from the label."
+
+
+def test_fuzzy_field_empty_submitted_returns_needs_review() -> None:
+    result = compare_label_fields(
+        extracted(brand_name="Old Tom"),
+        application(brand_name=""),
+    )
+    assert result["brand_name"].status == "needs-review"
+    assert result["brand_name"].reason == "No brand name was submitted to compare against the label."
 
 
 def test_government_warning_identical_values_pass() -> None:

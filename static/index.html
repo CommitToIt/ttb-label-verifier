@@ -29,32 +29,63 @@
     #clear-button:hover { background: #d0d7d2; }
     input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     .items { display: grid; gap: 1rem; margin-top: 1.25rem; }
-    .label-item { display: grid; grid-template-columns: minmax(10rem, 15rem) 1fr; gap: 1.25rem; padding: 1rem; border: 1px solid #d4d9d5; border-radius: 0.5rem; background: #fffdf8; }
-    .preview { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #e8ece8; border-radius: 0.3rem; }
+    .label-item { display: grid; grid-template-columns: minmax(10rem, 15rem) 1fr; gap: 1.25rem; padding: 1rem; border: 1px solid #d4d9d5; border-left: 0.45rem solid #d4d9d5; border-radius: 0.5rem; background: #fffdf8; transition: border-color 160ms; }
+    .label-item:has(.badge-pass) { border-color: #2f815d; }
+    .label-item:has(.badge-fail) { border-color: #b44f43; }
+    .label-item:has(.badge-needs-review) { border-color: #bd812e; }
+    .preview { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #e8ece8; border-radius: 0.3rem; cursor: pointer; transition: transform 140ms ease, box-shadow 140ms ease; }
+    .preview:hover { transform: scale(1.02); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
     .file-name { margin: 0.5rem 0 0; overflow-wrap: anywhere; color: #53636e; font-size: 0.85rem; }
+    .lightbox { display: none; position: fixed; inset: 0; background: rgba(18, 24, 30, 0.85); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; padding: 2rem; cursor: zoom-out; }
+    .lightbox.is-open { display: flex; }
+    .lightbox-img { max-width: 90vw; max-height: 90vh; border-radius: 0.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.4); object-fit: contain; background: #fffdf8; }
     .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
     label { display: grid; gap: 0.3rem; color: #42515b; font-size: 0.9rem; font-weight: 650; }
     input[type="text"] { width: 100%; border: 1px solid #aebcc2; border-radius: 0.3rem; padding: 0.62rem; background: white; color: inherit; font: inherit; }
-    .import-control { display: flex; align-items: center; gap: 0.45rem; grid-column: 1 / -1; }
+    input[type="text"]:disabled { background: #eaeee9; color: #82929c; border-color: #cbd4d1; cursor: not-allowed; }
+    .import-control { display: flex; align-items: center; gap: 0.45rem; grid-column: 2; margin-top: -0.35rem; }
     .import-control label { display: flex; align-items: center; gap: 0.45rem; }
     .remove-button { margin-top: 0.8rem; padding: 0.45rem 0.65rem; background: #eef0ed; color: #485862; font-size: 0.85rem; }
     .remove-button:hover { background: #e0e5e1; }
-    .actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 1.25rem; }
+    .actions { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-top: 1.25rem; }
+    .action-buttons { display: flex; align-items: center; gap: 0.8rem; }
     #verify-button:disabled { cursor: not-allowed; opacity: 0.5; }
-    .message { margin: 1rem 0 0; color: #8a3f2f; }
-    .overall-indicator { display: none; align-items: center; margin-left: auto; border-radius: 0.3rem; padding: 0.45rem 0.7rem; font-weight: 750; text-transform: capitalize; }
-    .card-results { margin-top: 1rem; border-top: 1px solid #d4d9d5; padding-top: 0.8rem; }
-    .result-item { border-left: 0.35rem solid #778b96; padding: 0.8rem 1rem; background: #fffdf8; }
-    .result-item.status-pass, .status-pass { border-color: #2f815d; color: #205c43; }
-    .result-item.status-fail, .status-fail { border-color: #b44f43; color: #87352e; }
-    .result-item.status-needs-review, .status-needs-review { border-color: #bd812e; color: #805817; }
-    .field-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem 1rem; margin: 0.8rem 0 0; }
-    .field-result { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: baseline; border-top: 1px solid #e1e4df; padding-top: 0.45rem; }
-    .field-name { font-weight: 700; }
-    .field-reason { flex-basis: 100%; font-size: 0.85rem; color: #53636e; }
+    .message { margin: 0; color: #8a3f2f; }
+    .overall-indicator { display: none; align-items: center; border-radius: 0.45rem; padding: 0.75rem 1.4rem; font-size: 1.65rem; font-weight: 800; text-transform: capitalize; letter-spacing: 0.01em; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .card-title { margin: 0; font-size: 1.05rem; font-weight: 750; color: #24323d; }
+    .card-badge { display: none; border-radius: 0.3rem; padding: 0.3rem 0.65rem; font-size: 0.92rem; font-weight: 750; text-transform: capitalize; letter-spacing: 0.01em; }
+    .field-group { display: flex; flex-direction: column; gap: 0.25rem; }
+    .field-header { display: flex; align-items: center; justify-content: space-between; border-radius: 0.3rem; padding: 0.3rem 0.5rem; transition: background-color 160ms, color 160ms; }
+    .field-header.header-pass { background: #d4ebd9; color: #1b5e3f; }
+    .field-header.header-fail { background: #fce1de; color: #87352e; }
+    .field-header.header-needs-review { background: #fef0d4; color: #805817; }
+    .field-label { font-size: 0.88rem; font-weight: 650; color: inherit; }
+    .field-reason { font-size: 0.8rem; line-height: 1.35; color: #53636e; padding: 0 0.25rem; }
+    .field-reason.status-fail { color: #87352e; }
+    .field-reason.status-needs-review { color: #805817; }
+    .field-group:has(.header-fail) .field-reason { color: #87352e; }
+    .field-group:has(.header-needs-review) .field-reason { color: #805817; }
+    .warning-item.status-fail .field-reason { color: #87352e; }
+    .warning-item.status-needs-review .field-reason { color: #805817; }
+    .status-pass { color: #205c43; }
+    .status-fail { color: #87352e; }
+    .status-needs-review { color: #805817; }
+    .badge-pass { background: #d4ebd9; color: #1b5e3f; }
+    .badge-fail { background: #fce1de; color: #87352e; }
+    .badge-needs-review { background: #fef0d4; color: #805817; }
+    .warning-section { margin-top: 1rem; border-top: 1px solid #d4d9d5; padding-top: 0.8rem; display: none; }
+    .warning-heading { margin: 0 0 0.5rem; font-size: 0.95rem; font-weight: 700; color: #33424d; }
+    .warning-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
+    .warning-item { display: flex; flex-direction: column; gap: 0.25rem; background: #f7f5ef; border-radius: 0.35rem; padding: 0.6rem 0.75rem; border-left: 0.25rem solid #778b96; }
+    .warning-item.status-pass { border-color: #2f815d; }
+    .warning-item.status-fail { border-color: #b44f43; }
+    .warning-item.status-needs-review { border-color: #bd812e; }
     @media (max-width: 680px) {
       .label-item { grid-template-columns: 1fr; }
-      .form-grid, .field-results { grid-template-columns: 1fr; }
+      .form-grid, .warning-grid { grid-template-columns: 1fr; }
+      .import-control { grid-column: 1; margin-top: 0; }
+      .actions { flex-direction: column; align-items: stretch; }
     }
   </style>
 </head>
@@ -69,13 +100,18 @@
       <p style="margin: 0.85rem 0 0; font-size: 0.85rem; color: #53636e;">Accepts JPEG, PNG, GIF, WebP, BMP, or TIFF images, up to 10MB</p>
     </section>
     <div class="actions">
-      <button id="verify-button" type="button" disabled>Verify labels</button>
-      <button id="clear-button" type="button">Clear</button>
+      <div class="action-buttons">
+        <button id="verify-button" type="button" disabled>Verify labels</button>
+        <button id="clear-button" type="button">Clear</button>
+      </div>
       <span id="overall-status" class="overall-indicator" role="status"></span>
       <span id="request-message" class="message" role="status"></span>
     </div>
     <section id="label-items" class="items" aria-live="polite"></section>
   </main>
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <img id="lightbox-img" class="lightbox-img" alt="Enlarged label view">
+  </div>
   <script src="/app.js"></script>
 </body>
 </html>

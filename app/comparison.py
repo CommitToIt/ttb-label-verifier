@@ -25,11 +25,13 @@ def _normalize(value: str | None) -> str:
     return " ".join((value or "").strip().casefold().split())
 
 
-def _fuzzy_result(field_name: str, extracted: str | None, submitted: str) -> FieldResult:
-    if not extracted:
-        return _result("needs-review", f"Could not reliably extract {field_name} from the label.")
+def _fuzzy_result(field_name: str, extracted: str | None, submitted: str | None) -> FieldResult:
     norm_extracted = _normalize(extracted)
     norm_submitted = _normalize(submitted)
+    if not norm_extracted:
+        return _result("needs-review", f"Could not reliably extract {field_name} from the label.")
+    if not norm_submitted:
+        return _result("needs-review", f"No {field_name} was submitted to compare against the label.")
     if norm_extracted == norm_submitted:
         return _result("pass", score=100.0)
     score = round(ratio(norm_extracted, norm_submitted), 1)
@@ -38,6 +40,23 @@ def _fuzzy_result(field_name: str, extracted: str | None, submitted: str) -> Fie
             "needs-review", f"{field_name.title()} similarity is borderline ({score:.0f}%).", score=score
         )
     return _result("fail", f"Label {field_name} does not match the submitted value.", score=score)
+
+
+def _country_of_origin_result(extracted: str | None, submitted: str | None) -> FieldResult:
+    norm_extracted = _normalize(extracted)
+    norm_submitted = _normalize(submitted)
+    if not norm_extracted:
+        return _result("needs-review", "Could not reliably extract country of origin from the label.")
+    if not norm_submitted:
+        return _result("needs-review", "No country of origin was submitted to compare against the label.")
+    if norm_extracted == norm_submitted or norm_submitted in norm_extracted or norm_extracted in norm_submitted:
+        return _result("pass", score=100.0)
+    score = round(ratio(norm_extracted, norm_submitted), 1)
+    if score >= FUZZY_REVIEW_THRESHOLD:
+        return _result(
+            "needs-review", f"Country Of Origin similarity is borderline ({score:.0f}%).", score=score
+        )
+    return _result("fail", "Label country of origin does not match the submitted value.", score=score)
 
 
 def _alcohol_value(value: str | None) -> float | None:
@@ -109,8 +128,8 @@ def compare_label_fields(
         )
 
     if submitted.is_import:
-        results["country_of_origin"] = _fuzzy_result(
-            "country of origin", extracted.country_of_origin, submitted.country_of_origin
+        results["country_of_origin"] = _country_of_origin_result(
+            extracted.country_of_origin, submitted.country_of_origin
         )
 
     return results
