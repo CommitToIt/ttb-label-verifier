@@ -44,7 +44,7 @@ def extracted(**overrides: str | bool | float) -> LabelFields:
 
 
 def test_verify_items_returns_field_statuses_and_reasons(monkeypatch) -> None:
-    async def fake_extract(image_bytes: bytes, media_type: str) -> LabelFields:
+    async def fake_extract(image_bytes: bytes, media_type: str, **kwargs) -> LabelFields:
         assert image_bytes == b"\xff\xd8\xffimage-bytes"
         assert media_type == "image/jpeg"
         return extracted()
@@ -63,7 +63,7 @@ def test_verify_items_returns_field_statuses_and_reasons(monkeypatch) -> None:
 
 
 def test_moderate_confidence_preserves_field_verdicts(monkeypatch) -> None:
-    async def fake_extract(image_bytes: bytes, media_type: str) -> LabelFields:
+    async def fake_extract(image_bytes: bytes, media_type: str, **kwargs) -> LabelFields:
         return extracted(
             government_warning_text=REQUIRED_GOVERNMENT_WARNING,
             extraction_confidence=0.55,
@@ -82,7 +82,7 @@ def test_moderate_confidence_preserves_field_verdicts(monkeypatch) -> None:
 
 
 def test_very_low_confidence_marks_only_item_for_review(monkeypatch) -> None:
-    async def fake_extract(image_bytes: bytes, media_type: str) -> LabelFields:
+    async def fake_extract(image_bytes: bytes, media_type: str, **kwargs) -> LabelFields:
         return extracted(
             government_warning_text=REQUIRED_GOVERNMENT_WARNING,
             extraction_confidence=0.2,
@@ -97,3 +97,97 @@ def test_very_low_confidence_marks_only_item_for_review(monkeypatch) -> None:
     assert response["results"][0]["status"] == "needs-review"
     assert fields["brand_name"]["status"] == "pass"
     assert fields["alcohol_content"]["status"] == "pass"
+
+
+def test_batch_with_invalid_file_preserves_valid_item_results(monkeypatch) -> None:
+    async def fake_extract(image_bytes: bytes, media_type: str, **kwargs) -> LabelFields:
+        return extracted(government_warning_text=REQUIRED_GOVERNMENT_WARNING)
+
+    monkeypatch.setattr("app.verification.extract_label_fields", fake_extract)
+
+    valid_1 = upload()
+    invalid_file = UploadFile(
+        filename="bad.txt",
+        file=io.BytesIO(b"not an image"),
+        headers={"content-type": "text/plain"},
+    )
+    valid_2 = upload()
+
+    submissions = [submission(), submission(), submission()]
+
+    response = asyncio.run(
+        verify_items([valid_1, invalid_file, valid_2], json.dumps(submissions))
+    )
+
+    assert response["image_count"] == 3
+    assert response["status"] == "fail"
+    results = response["results"]
+    assert results[0]["status"] == "pass"
+    assert results[0]["fields"]["brand_name"]["status"] == "pass"
+    assert results[1]["status"] == "fail"
+    assert "image_upload" in results[1]["fields"]
+    assert "not a supported image" in results[1]["fields"]["image_upload"]["reason"]
+    assert results[2]["status"] == "pass"
+    assert results[2]["fields"]["brand_name"]["status"] == "pass"
+
+
+def test_batch_processed_concurrently(monkeypatch) -> None:
+    active_calls = 0
+    max_concurrent_calls = 0
+
+    async def fake_extract(image_bytes: bytes, media_type: str, **kwargs) -> LabelFields:
+        nonlocal active_calls, max_concurrent_calls
+        active_calls += 1
+        max_concurrent_calls = max(max_concurrent_calls, active_calls)
+        await asyncio.sleep(0.05)
+        active_calls -= 1
+        return extracted(government_warning_text=REQUIRED_GOVERNMENT_WARNING)
+
+    monkeypatch.setattr("app.verification.extract_label_fields", fake_extract)
+
+    uploads = [upload() for _ in range(3)]
+    submissions = [submission() for _ in range(3)]
+
+    response = asyncio.run(verify_items(uploads, json.dumps(submissions)))
+
+    assert len(response["results"]) == 3
+    assert max_concurrent_calls > 1
+    assert response["status"] == "pass"
+
+
+def test_batch_unexpected_exception_in_one_item_preserves_others(monkeypatch) -> None:
+    async def fake_extract(image_bytes: bytes, media_type: str, **kwargs) -> LabelFields:
+        if image_bytes == b"\xff\xd8\xffimage-bytes-fail":
+            raise RuntimeError("Unexpected boom in worker")
+        return extracted(government_warning_text=REQUIRED_GOVERNMENT_WARNING)
+
+    monkeypatch.setattr("app.verification.extract_label_fields", fake_extract)
+
+    valid_1 = upload()
+    failing_item = UploadFile(
+        filename="failing.jpg",
+        file=io.BytesIO(b"\xff\xd8\xffimage-bytes-fail"),
+        headers={"content-type": "image/jpeg"},
+    )
+    valid_2 = upload()
+
+    submissions = [submission(), submission(), submission()]
+
+    response = asyncio.run(
+        verify_items([valid_1, failing_item, valid_2], json.dumps(submissions))
+    )
+
+    assert len(response["results"]) == 3
+    assert response["image_count"] == 3
+    assert response["status"] == "needs-review"
+
+    results = response["results"]
+    assert results[0]["status"] == "pass"
+    assert results[0]["fields"]["brand_name"]["status"] == "pass"
+
+    assert results[1]["status"] == "needs-review"
+    assert "processing_error" in results[1]["fields"]
+    assert "Unexpected error" in results[1]["fields"]["processing_error"]["reason"] or "Unexpected boom" in results[1]["fields"]["processing_error"]["reason"]
+
+    assert results[2]["status"] == "pass"
+    assert results[2]["fields"]["brand_name"]["status"] == "pass"

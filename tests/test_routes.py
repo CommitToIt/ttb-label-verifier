@@ -35,7 +35,7 @@ def extracted() -> LabelFields:
 
 
 def post_verification(monkeypatch, application: dict[str, str | bool]):
-    async def fake_extract(image_bytes: bytes, media_type: str) -> LabelFields:
+    async def fake_extract(image_bytes: bytes, media_type: str, **kwargs) -> LabelFields:
         return extracted()
 
     monkeypatch.setattr("app.verification.extract_label_fields", fake_extract)

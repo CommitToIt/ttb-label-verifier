@@ -38,11 +38,17 @@ def _fuzzy_result(field_name: str, extracted: str | None, submitted: str) -> Fie
 def _alcohol_value(value: str | None) -> float | None:
     if not value:
         return None
-    match = re.search(r"(\d+(?:\.\d+)?)", value.replace(",", ""))
+    clean_value = value.replace(",", "")
+    percent_match = re.search(r"(\d+(?:\.\d+)?)\s*%", clean_value)
+    if percent_match:
+        return float(percent_match.group(1))
+    proof_match = re.search(r"(\d+(?:\.\d+)?)\s*proof", clean_value, re.IGNORECASE)
+    if proof_match:
+        return float(proof_match.group(1)) / 2
+    match = re.search(r"(\d+(?:\.\d+)?)", clean_value)
     if not match:
         return None
-    numeric_value = float(match.group(1))
-    return numeric_value / 2 if "proof" in value.casefold() else numeric_value
+    return float(match.group(1))
 
 
 def _alcohol_result(extracted: str | None, submitted: str) -> FieldResult:
@@ -70,8 +76,8 @@ def compare_label_fields(
         "brand_name": _fuzzy_result("brand name", extracted.brand_name, submitted.brand_name),
         "class_type": _fuzzy_result("class/type", extracted.class_type, submitted.class_type),
         "alcohol_content": _alcohol_result(extracted.alcohol_content, submitted.alcohol_content),
-        "net_contents": _exact_result("net contents", extracted.net_contents, submitted.net_contents),
-        "bottler_name_address": _exact_result(
+        "net_contents": _fuzzy_result("net contents", extracted.net_contents, submitted.net_contents),
+        "bottler_name_address": _fuzzy_result(
             "bottler name/address", extracted.bottler_name_address, submitted.bottler_name_address
         ),
         "government_warning_text": _exact_result(
@@ -92,7 +98,7 @@ def compare_label_fields(
         )
 
     if submitted.is_import:
-        results["country_of_origin"] = _exact_result(
+        results["country_of_origin"] = _fuzzy_result(
             "country of origin", extracted.country_of_origin, submitted.country_of_origin
         )
 

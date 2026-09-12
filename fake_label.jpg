@@ -1,0 +1,12 @@
+This is a plain text file pretending to be a JPEG image by its file
+extension alone. It contains no actual image data whatsoever -- no JPEG
+file signature, no pixel data, nothing a real image decoder could parse.
+
+This file exists specifically to test that your validation logic checks
+the real file signature (the actual bytes at the start of the file)
+rather than trusting the .jpg extension or a client-declared MIME type,
+both of which are trivial for anyone to fake.
+
+If your app correctly rejects this file, that confirms the security-
+conscious validation approach implemented in Stage C-D is working as
+intended.

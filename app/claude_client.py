@@ -10,7 +10,7 @@ from app.models import LabelFields
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "extract_label_fields"
-EXTRACTION_TIMEOUT_SECONDS = 45
+EXTRACTION_TIMEOUT_SECONDS = 12
 
 
 def _needs_review_fields() -> LabelFields:
@@ -24,13 +24,20 @@ def _tool_input(response: object) -> object:
     raise ValueError("Claude response did not contain the extraction tool result")
 
 
-async def extract_label_fields(image_bytes: bytes, media_type: str) -> LabelFields:
+async def extract_label_fields(
+    image_bytes: bytes,
+    media_type: str,
+    client: AsyncAnthropic | None = None,
+) -> LabelFields:
     """Extract label fields through a forced, schema-backed Claude tool call."""
-    if not settings.anthropic_api_key:
+    if not settings.anthropic_api_key and client is None:
         logger.warning("Claude extraction skipped because ANTHROPIC_API_KEY is not configured")
         return _needs_review_fields()
 
-    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    manage_client = client is None
+    if manage_client:
+        client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+
     tool = {
         "name": TOOL_NAME,
         "description": "Extract the requested regulatory fields visible on an alcohol label.",
@@ -71,7 +78,8 @@ async def extract_label_fields(image_bytes: bytes, media_type: str) -> LabelFiel
         logger.warning("Claude label extraction failed: %s", type(exc).__name__)
         return _needs_review_fields()
     finally:
-        try:
-            await client.close()
-        except Exception as exc:
-            logger.warning("Claude client cleanup failed: %s", type(exc).__name__)
+        if manage_client and client is not None:
+            try:
+                await client.close()
+            except Exception as exc:
+                logger.warning("Claude client cleanup failed: %s", type(exc).__name__)
