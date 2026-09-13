@@ -149,7 +149,7 @@ def draw_label(
 def main():
     # 1. clean_pass
     draw_label(
-        filename="1_clean_pass.jpg",
+        filename="1_all_fields_match_pass.jpg",
         brand_name="OLD TOM DISTILLERY",
         class_type="Kentucky Straight Bourbon Whiskey",
         alcohol_content="45% Alc./Vol. (90 Proof)",
@@ -162,7 +162,7 @@ def main():
 
     # 2. brand_case_diff
     draw_label(
-        filename="2_brand_case_diff.jpg",
+        filename="2_brand_name_case_difference_pass.jpg",
         brand_name="STONE'S THROW",
         class_type="American Dry Gin",
         alcohol_content="47% Alc./Vol.",
@@ -175,7 +175,7 @@ def main():
 
     # 3. warning_format_violation (title case, not bold)
     draw_label(
-        filename="3_warning_format_violation.jpg",
+        filename="3_warning_not_bold_caps_fail.jpg",
         brand_name="BLUE RIDGE RYE",
         class_type="Straight Rye Whiskey",
         alcohol_content="46% Alc./Vol.",
@@ -188,7 +188,7 @@ def main():
 
     # 4. abv_format_diff
     draw_label(
-        filename="4_abv_format_diff.jpg",
+        filename="4_alcohol_proof_format_pass.jpg",
         brand_name="PRAIRIE HARVEST",
         class_type="Vodka",
         alcohol_content="40% Alc./Vol.",
@@ -201,7 +201,7 @@ def main():
 
     # 5. missing_country_of_origin
     draw_label(
-        filename="5_missing_country_of_origin.jpg",
+        filename="5_import_missing_country_fail.jpg",
         brand_name="HIGHLAND RESERVE",
         class_type="Single Malt Scotch Whisky",
         alcohol_content="43% Alc./Vol.",
@@ -214,7 +214,7 @@ def main():
 
     # 6. genuine_mismatch
     draw_label(
-        filename="6_genuine_mismatch.jpg",
+        filename="6_brand_name_mismatch_fail.jpg",
         brand_name="OAK & IRON RUM",
         class_type="Dark Rum",
         alcohol_content="40% Alc./Vol.",

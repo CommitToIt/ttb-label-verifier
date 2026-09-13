@@ -23,7 +23,7 @@ const fields = [
 
 const SAMPLE_SCENARIOS = [
   {
-    filename: "1_clean_pass.jpg",
+    filename: "1_all_fields_match_pass.jpg",
     data: {
       brand_name: "OLD TOM DISTILLERY",
       class_type: "Kentucky Straight Bourbon Whiskey",
@@ -35,7 +35,7 @@ const SAMPLE_SCENARIOS = [
     },
   },
   {
-    filename: "2_brand_case_diff.jpg",
+    filename: "2_brand_name_case_difference_pass.jpg",
     data: {
       brand_name: "Stone's Throw",
       class_type: "American Dry Gin",
@@ -47,7 +47,7 @@ const SAMPLE_SCENARIOS = [
     },
   },
   {
-    filename: "3_warning_format_violation.jpg",
+    filename: "3_warning_not_bold_caps_fail.jpg",
     data: {
       brand_name: "BLUE RIDGE RYE",
       class_type: "Straight Rye Whiskey",
@@ -59,7 +59,7 @@ const SAMPLE_SCENARIOS = [
     },
   },
   {
-    filename: "4_abv_format_diff.jpg",
+    filename: "4_alcohol_proof_format_pass.jpg",
     data: {
       brand_name: "PRAIRIE HARVEST",
       class_type: "Vodka",
@@ -71,7 +71,7 @@ const SAMPLE_SCENARIOS = [
     },
   },
   {
-    filename: "5_missing_country_of_origin.jpg",
+    filename: "5_import_missing_country_fail.jpg",
     data: {
       brand_name: "HIGHLAND RESERVE",
       class_type: "Single Malt Scotch Whisky",
@@ -83,13 +83,37 @@ const SAMPLE_SCENARIOS = [
     },
   },
   {
-    filename: "6_genuine_mismatch.jpg",
+    filename: "6_brand_name_mismatch_fail.jpg",
     data: {
       brand_name: "SILVER SHORES TEQUILA",
       class_type: "Dark Rum",
       alcohol_content: "40% Alc./Vol.",
       net_contents: "750 mL",
       bottler_name_address: "Oak & Iron Distilling Co., Tampa, FL",
+      country_of_origin: "",
+      is_import: false,
+    },
+  },
+  {
+    filename: "7_real_photo_bourbon_pass.jpg",
+    data: {
+      brand_name: "Buffalo Trace",
+      class_type: "Kentucky Straight Bourbon Whiskey",
+      alcohol_content: "45",
+      net_contents: "750",
+      bottler_name_address: "Buffalo Trace Distillery, Frankfort, KY",
+      country_of_origin: "",
+      is_import: false,
+    },
+  },
+  {
+    filename: "8_real_photo_beer_pass.jpg",
+    data: {
+      brand_name: "Devils Backbone",
+      class_type: "India Pale Ale",
+      alcohol_content: "7",
+      net_contents: "12 fl oz",
+      bottler_name_address: "Devils Backbone Brewing Company, Lexington, VA",
       country_of_origin: "",
       is_import: false,
     },
