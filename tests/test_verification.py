@@ -35,7 +35,7 @@ def extracted(**overrides: str | bool | float) -> LabelFields:
         "alcohol_content": "90 proof",
         "net_contents": "750 mL",
         "bottler_name_address": "Example Bottler, Austin, TX",
-        "government_warning_text": REQUIRED_GOVERNMENT_WARNING.title(),
+        "government_warning_text": REQUIRED_GOVERNMENT_WARNING.replace("Surgeon General", "Surgeon Generals Office"),
         "government_warning_is_bold_and_caps": True,
         "extraction_confidence": 0.95,
     }

@@ -204,7 +204,7 @@ def _net_contents_result(extracted: str | None, submitted: str) -> FieldResult:
 def _warning_text_result(extracted: str | None) -> FieldResult:
     if extracted is None:
         return _result("needs-review", "Could not reliably extract government warning text from the label.")
-    if extracted == REQUIRED_GOVERNMENT_WARNING:
+    if _normalize(extracted) == _normalize(REQUIRED_GOVERNMENT_WARNING):
         return _result("pass")
     return _result("fail", "The government warning text does not exactly match the required statement.")
 
@@ -223,7 +223,7 @@ def compare_label_fields(
         "government_warning_text": _warning_text_result(extracted.government_warning_text),
     }
 
-    if extracted.government_warning_text == REQUIRED_GOVERNMENT_WARNING:
+    if _normalize(extracted.government_warning_text) == _normalize(REQUIRED_GOVERNMENT_WARNING):
         if extracted.government_warning_is_bold_and_caps is True:
             results["government_warning_is_bold_and_caps"] = _result("pass")
         else:

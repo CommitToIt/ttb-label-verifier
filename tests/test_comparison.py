@@ -271,15 +271,22 @@ def test_government_warning_identical_values_pass() -> None:
     assert compare_label_fields(extracted(), application())["government_warning_text"].status == "pass"
 
 
-def test_government_warning_case_difference_fails() -> None:
+def test_government_warning_all_caps_passes_and_allows_formatting_check() -> None:
     result = compare_label_fields(
-        extracted(government_warning_text=REQUIRED_GOVERNMENT_WARNING.title()), application()
+        extracted(government_warning_text=REQUIRED_GOVERNMENT_WARNING.upper()), application()
     )
-    assert result["government_warning_text"].status == "fail"
+    assert result["government_warning_text"].status == "pass"
+    assert result["government_warning_is_bold_and_caps"].status == "pass"
 
 
 def test_genuinely_different_government_warning_fails() -> None:
     result = compare_label_fields(extracted(government_warning_text="Different warning"), application())
+    assert result["government_warning_text"].status == "fail"
+
+
+def test_government_warning_incorrect_wording_fails() -> None:
+    wrong_wording = REQUIRED_GOVERNMENT_WARNING.replace("Surgeon General", "Surgeon Generals Office")
+    result = compare_label_fields(extracted(government_warning_text=wrong_wording), application())
     assert result["government_warning_text"].status == "fail"
 
 
