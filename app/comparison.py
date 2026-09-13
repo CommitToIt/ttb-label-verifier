@@ -44,20 +44,26 @@ def _fuzzy_result(field_name: str, extracted: str | None, submitted: str | None)
 
 
 def _country_of_origin_result(extracted: str | None, submitted: str | None) -> FieldResult:
+    return _containment_or_fuzzy_result("country of origin", extracted, submitted)
+
+
+def _containment_or_fuzzy_result(
+    field_name: str, extracted: str | None, submitted: str | None
+) -> FieldResult:
     norm_extracted = _normalize(extracted)
     norm_submitted = _normalize(submitted)
     if not norm_extracted:
-        return _result("needs-review", "Could not reliably extract country of origin from the label.")
+        return _result("needs-review", f"Could not reliably extract {field_name} from the label.")
     if not norm_submitted:
-        return _result("needs-review", "No country of origin was submitted to compare against the label.")
+        return _result("needs-review", f"No {field_name} was submitted to compare against the label.")
     if norm_extracted == norm_submitted or norm_submitted in norm_extracted or norm_extracted in norm_submitted:
         return _result("pass", score=100.0)
     score = round(ratio(norm_extracted, norm_submitted), 1)
     if score >= FUZZY_REVIEW_THRESHOLD:
         return _result(
-            "needs-review", f"Country Of Origin similarity is borderline ({score:.0f}%).", score=score
+            "needs-review", f"{field_name.title()} similarity is borderline ({score:.0f}%).", score=score
         )
-    return _result("fail", "Label country of origin does not match the submitted value.", score=score)
+    return _result("fail", f"Label {field_name} does not match the submitted value.", score=score)
 
 
 def _alcohol_value(value: str | None) -> float | None:
@@ -134,7 +140,7 @@ def compare_label_fields(
         "class_type": _fuzzy_result("class/type", extracted.class_type, submitted.class_type),
         "alcohol_content": _alcohol_result(extracted.alcohol_content, submitted.alcohol_content),
         "net_contents": _net_contents_result(extracted.net_contents, submitted.net_contents),
-        "bottler_name_address": _fuzzy_result(
+        "bottler_name_address": _containment_or_fuzzy_result(
             "bottler name/address", extracted.bottler_name_address, submitted.bottler_name_address
         ),
         "government_warning_text": _warning_text_result(extracted.government_warning_text),

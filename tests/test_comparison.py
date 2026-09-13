@@ -145,6 +145,26 @@ def test_genuinely_different_bottler_name_address_fails() -> None:
     assert result["bottler_name_address"].status == "fail"
 
 
+def test_bottler_name_address_containment_passes() -> None:
+    result = compare_label_fields(
+        extracted(
+            bottler_name_address="DISTILLED, AGED & BOTTLED BY BUFFALO TRACE DISTILLERY, FRANKFORT, KY"
+        ),
+        application(bottler_name_address="Buffalo Trace Distillery, Frankfort, KY"),
+    )
+    assert result["bottler_name_address"].status == "pass"
+
+
+def test_bottler_name_address_containment_genuinely_different_fails() -> None:
+    result = compare_label_fields(
+        extracted(
+            bottler_name_address="DISTILLED, AGED & BOTTLED BY BUFFALO TRACE DISTILLERY, FRANKFORT, KY"
+        ),
+        application(bottler_name_address="Heaven Hill Distillery, Bardstown, KY"),
+    )
+    assert result["bottler_name_address"].status == "fail"
+
+
 def test_country_of_origin_identical_values_pass() -> None:
     assert compare_label_fields(extracted(), application())["country_of_origin"].status == "pass"
 
