@@ -35,13 +35,3 @@ class FieldResult(BaseModel):
     status: VerificationStatus
     reason: str | None = None
     score: float | None = None
-
-
-class VerificationResult(BaseModel):
-    item_index: int
-    status: VerificationStatus
-    fields: dict[str, FieldResult] = Field(default_factory=dict)
-
-
-class VerificationSummary(BaseModel):
-    results: list[VerificationResult]
