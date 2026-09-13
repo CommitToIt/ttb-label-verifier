@@ -242,3 +242,35 @@ def test_verify_items_logging_emits_timing_outcomes_and_no_sensitive_values(
     assert secret_submitted_brand not in log_text
     assert "Extracted Secret Brand" not in log_text
     assert "image-bytes" not in log_text
+
+
+def test_batch_exceeding_max_batch_size_rejected_cleanly(monkeypatch) -> None:
+    from fastapi import HTTPException
+    import pytest
+
+    monkeypatch.setattr("app.verification.settings.max_batch_size", 3)
+
+    uploads = [upload() for _ in range(4)]
+    submissions = [submission() for _ in range(4)]
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(verify_items(uploads, json.dumps(submissions)))
+
+    assert exc_info.value.status_code == 400
+    assert "exceeds maximum allowed limit" in exc_info.value.detail
+
+
+def test_batch_at_max_batch_size_processed_normally(monkeypatch) -> None:
+    async def fake_extract(image_bytes: bytes, media_type: str, **kwargs) -> LabelFields:
+        return extracted(government_warning_text=REQUIRED_GOVERNMENT_WARNING)
+
+    monkeypatch.setattr("app.verification.extract_label_fields", fake_extract)
+    monkeypatch.setattr("app.verification.settings.max_batch_size", 3)
+
+    uploads = [upload() for _ in range(3)]
+    submissions = [submission() for _ in range(3)]
+
+    response = asyncio.run(verify_items(uploads, json.dumps(submissions)))
+    assert response["image_count"] == 3
+    assert len(response["results"]) == 3
+    assert response["status"] == "pass"

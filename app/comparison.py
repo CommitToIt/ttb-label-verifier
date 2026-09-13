@@ -85,14 +85,6 @@ def _alcohol_result(extracted: str | None, submitted: str) -> FieldResult:
     return _result("fail", "Label alcohol content does not match the submitted value.")
 
 
-def _exact_result(field_name: str, extracted: str | None, submitted: str | None) -> FieldResult:
-    if extracted is None or submitted is None:
-        return _result("needs-review", f"Could not reliably extract {field_name} from the label.")
-    if extracted == submitted:
-        return _result("pass")
-    return _result("fail", f"Label {field_name} does not exactly match the submitted value.")
-
-
 def _warning_text_result(extracted: str | None) -> FieldResult:
     if extracted is None:
         return _result("needs-review", "Could not reliably extract government warning text from the label.")

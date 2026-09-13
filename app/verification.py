@@ -25,6 +25,17 @@ async def verify_items(images: list[UploadFile], applications: str) -> dict[str,
     image_count = len(images)
     logger.info("Starting verification batch for %d image(s)", image_count)
 
+    if image_count > settings.max_batch_size:
+        logger.warning(
+            "Batch size %d exceeds maximum configured limit of %d",
+            image_count,
+            settings.max_batch_size,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail=f"Batch size of {image_count} exceeds maximum allowed limit of {settings.max_batch_size} images.",
+        )
+
     try:
         submitted = json.loads(applications)
     except json.JSONDecodeError:

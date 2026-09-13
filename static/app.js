@@ -7,7 +7,9 @@ const overallStatus = document.querySelector("#overall-status");
 const requestMessage = document.querySelector("#request-message");
 const lightbox = document.querySelector("#lightbox");
 const lightboxImg = document.querySelector("#lightbox-img");
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const uploadDisclaimer = document.querySelector("#upload-disclaimer");
+let MAX_FILE_SIZE = 10 * 1024 * 1024;
+let MAX_BATCH_SIZE = 20;
 const items = [];
 
 const fields = [
@@ -240,6 +242,10 @@ function updateVerifyButton() {
 
 function addFiles(files) {
   for (const file of files) {
+    if (items.length >= MAX_BATCH_SIZE) {
+      setMessage(`Batch limit reached. Maximum ${MAX_BATCH_SIZE} images per batch.`);
+      break;
+    }
     if (!file.type.startsWith("image/")) {
       setMessage(`${file.name} was skipped because it doesn't appear to be an image.`);
       continue;
@@ -534,4 +540,21 @@ async function loadSampleScenarios() {
   updateVerifyButton();
 }
 
+async function initConfig() {
+  try {
+    const res = await fetch("/api/config");
+    if (!res.ok) return;
+    const cfg = await res.json();
+    if (cfg.max_batch_size) MAX_BATCH_SIZE = cfg.max_batch_size;
+    if (cfg.max_upload_size_bytes) MAX_FILE_SIZE = cfg.max_upload_size_bytes;
+    if (uploadDisclaimer) {
+      const mb = Math.round(MAX_FILE_SIZE / (1024 * 1024));
+      uploadDisclaimer.textContent = `Accepts JPEG, PNG, GIF, WebP, BMP, or TIFF images, up to ${mb}MB (up to ${MAX_BATCH_SIZE} images per batch)`;
+    }
+  } catch (err) {
+    console.warn("Could not load /api/config:", err);
+  }
+}
+
+initConfig();
 loadSampleScenarios();
