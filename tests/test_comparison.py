@@ -102,6 +102,31 @@ def test_genuinely_different_net_contents_fails() -> None:
     assert compare_label_fields(extracted(net_contents="1 L"), application())["net_contents"].status == "fail"
 
 
+def test_net_contents_ml_suffix_no_space_passes() -> None:
+    result = compare_label_fields(extracted(net_contents="750ML"), application(net_contents="750"))
+    assert result["net_contents"].status == "pass"
+
+
+def test_net_contents_liters_vs_milliliters_passes() -> None:
+    result = compare_label_fields(extracted(net_contents="1.75 L"), application(net_contents="1750 mL"))
+    assert result["net_contents"].status == "pass"
+
+
+def test_net_contents_fluid_ounces_vs_bare_number_passes() -> None:
+    result = compare_label_fields(extracted(net_contents="12 FL OZ"), application(net_contents="354.882"))
+    assert result["net_contents"].status == "pass"
+
+
+def test_net_contents_fl_oz_not_misdetected_as_liters() -> None:
+    result = compare_label_fields(extracted(net_contents="12 FL OZ"), application(net_contents="354.882 mL"))
+    assert result["net_contents"].status == "pass"
+
+
+def test_net_contents_different_quantity_still_fails() -> None:
+    result = compare_label_fields(extracted(net_contents="375 mL"), application(net_contents="750"))
+    assert result["net_contents"].status == "fail"
+
+
 def test_bottler_name_address_identical_values_pass() -> None:
     assert compare_label_fields(extracted(), application())["bottler_name_address"].status == "pass"
 

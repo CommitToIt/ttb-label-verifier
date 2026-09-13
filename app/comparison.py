@@ -13,6 +13,7 @@ REQUIRED_GOVERNMENT_WARNING = (
 )
 FUZZY_REVIEW_THRESHOLD = 75
 ALCOHOL_TOLERANCE = 0.1
+NET_CONTENTS_TOLERANCE_ML = 1.0
 
 
 def _result(
@@ -85,6 +86,38 @@ def _alcohol_result(extracted: str | None, submitted: str) -> FieldResult:
     return _result("fail", "Label alcohol content does not match the submitted value.")
 
 
+def _net_contents_value_ml(value: str | None) -> float | None:
+    if not value:
+        return None
+    clean_value = value.replace(",", "")
+    # Check "fl oz" before "l" so "fl oz" never gets misread as liters.
+    ml_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:ml|milliliters?)\b", clean_value, re.IGNORECASE)
+    if ml_match:
+        return float(ml_match.group(1))
+    fl_oz_match = re.search(
+        r"(\d+(?:\.\d+)?)\s*(?:fl\.?\s*oz|fluid\s*ounces?)\b", clean_value, re.IGNORECASE
+    )
+    if fl_oz_match:
+        return float(fl_oz_match.group(1)) * 29.5735
+    liter_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:l|liters?|litres?)\b", clean_value, re.IGNORECASE)
+    if liter_match:
+        return float(liter_match.group(1)) * 1000
+    match = re.search(r"(\d+(?:\.\d+)?)", clean_value)
+    if not match:
+        return None
+    return float(match.group(1))
+
+
+def _net_contents_result(extracted: str | None, submitted: str) -> FieldResult:
+    extracted_value = _net_contents_value_ml(extracted)
+    submitted_value = _net_contents_value_ml(submitted)
+    if extracted_value is None or submitted_value is None:
+        return _result("needs-review", "Could not reliably parse net contents.")
+    if abs(extracted_value - submitted_value) <= NET_CONTENTS_TOLERANCE_ML:
+        return _result("pass")
+    return _result("fail", "Label net contents does not match the submitted value.")
+
+
 def _warning_text_result(extracted: str | None) -> FieldResult:
     if extracted is None:
         return _result("needs-review", "Could not reliably extract government warning text from the label.")
@@ -100,7 +133,7 @@ def compare_label_fields(
         "brand_name": _fuzzy_result("brand name", extracted.brand_name, submitted.brand_name),
         "class_type": _fuzzy_result("class/type", extracted.class_type, submitted.class_type),
         "alcohol_content": _alcohol_result(extracted.alcohol_content, submitted.alcohol_content),
-        "net_contents": _fuzzy_result("net contents", extracted.net_contents, submitted.net_contents),
+        "net_contents": _net_contents_result(extracted.net_contents, submitted.net_contents),
         "bottler_name_address": _fuzzy_result(
             "bottler name/address", extracted.bottler_name_address, submitted.bottler_name_address
         ),

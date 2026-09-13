@@ -125,6 +125,11 @@ function makeFieldGroup(item, key, labelText) {
   input.name = key;
   input.value = item.data[key] || "";
   input.autocomplete = "off";
+  if (key === "net_contents") {
+    input.placeholder = "e.g., 750 mL or 12 FL OZ";
+  } else if (key === "alcohol_content") {
+    input.placeholder = "e.g., 45% or 90 Proof";
+  }
   input.addEventListener("input", () => { item.data[key] = input.value; });
 
   group.append(header, reason, input);
