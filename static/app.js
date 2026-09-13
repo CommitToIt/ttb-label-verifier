@@ -1,8 +1,8 @@
 const fileInput = document.querySelector("#file-input");
 const uploadArea = document.querySelector("#upload-area");
 const labelItems = document.querySelector("#label-items");
-const verifyButton = document.querySelector("#verify-button");
-const clearButton = document.querySelector("#clear-button");
+const verifyButtons = document.querySelectorAll(".verify-button");
+const clearButtons = document.querySelectorAll(".clear-button");
 const overallStatus = document.querySelector("#overall-status");
 const requestMessage = document.querySelector("#request-message");
 const lightbox = document.querySelector("#lightbox");
@@ -266,7 +266,7 @@ function renderItem(item) {
 }
 
 function updateVerifyButton() {
-  verifyButton.disabled = items.length === 0;
+  verifyButtons.forEach((button) => { button.disabled = items.length === 0; });
 }
 
 function addFiles(files) {
@@ -347,8 +347,8 @@ function resetCardResults() {
   }
 }
 
-verifyButton.addEventListener("click", async () => {
-  verifyButton.disabled = true;
+verifyButtons.forEach((button) => button.addEventListener("click", async () => {
+  verifyButtons.forEach((btn) => { btn.disabled = true; });
   setMessage("Verifying labels...");
   if (overallStatus) {
     overallStatus.style.display = "none";
@@ -372,7 +372,7 @@ verifyButton.addEventListener("click", async () => {
   } finally {
     updateVerifyButton();
   }
-});
+}));
 
 function statusLabel(status) {
   return status === "needs-review" ? "Needs review" : status.charAt(0).toUpperCase() + status.slice(1);
@@ -542,9 +542,7 @@ function clearAll() {
   updateVerifyButton();
 }
 
-if (clearButton) {
-  clearButton.addEventListener("click", clearAll);
-}
+clearButtons.forEach((button) => button.addEventListener("click", clearAll));
 
 async function loadSampleScenarios() {
   for (const scenario of SAMPLE_SCENARIOS) {
