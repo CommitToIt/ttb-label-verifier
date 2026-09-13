@@ -172,6 +172,14 @@ def test_bottler_name_address_state_abbreviation_vs_full_name_passes() -> None:
     assert result["bottler_name_address"].status == "pass"
 
 
+def test_bottler_name_address_state_with_trailing_phone_number_passes() -> None:
+    result = compare_label_fields(
+        extracted(bottler_name_address="Devils Backbone Brewing Co., Lexington, VA 540.817.6080"),
+        application(bottler_name_address="Devils Backbone Brewing Co., Lexington, VA"),
+    )
+    assert result["bottler_name_address"].status == "pass"
+
+
 def test_bottler_name_address_state_word_elsewhere_in_string_unaffected() -> None:
     result = compare_label_fields(
         extracted(bottler_name_address="IN THE HEART OF BOURBON COUNTRY, Frankfort, KY"),

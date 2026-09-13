@@ -69,6 +69,12 @@ STATE_NAME_TO_ABBREVIATION = {
     "wyoming": "WY",
 }
 ABBREVIATION_TO_STATE_NAME = {abbr: name for name, abbr in STATE_NAME_TO_ABBREVIATION.items()}
+_STATE_TOKENS = sorted(
+    [*STATE_NAME_TO_ABBREVIATION.keys(), *ABBREVIATION_TO_STATE_NAME.keys()], key=len, reverse=True
+)
+_LEADING_STATE_PATTERN = re.compile(
+    r"^(" + "|".join(re.escape(token) for token in _STATE_TOKENS) + r")\b", re.IGNORECASE
+)
 
 
 def _result(
@@ -107,13 +113,18 @@ def _normalize_trailing_state(value: str | None) -> str | None:
         return value
     prefix, _, last_segment = value.rpartition(",")
     trimmed = last_segment.strip()
-    lookup_key = trimmed.casefold()
-    full_name = ABBREVIATION_TO_STATE_NAME.get(trimmed.upper()) or (
-        lookup_key if lookup_key in STATE_NAME_TO_ABBREVIATION else None
-    )
+    match = _LEADING_STATE_PATTERN.match(trimmed)
+    if not match:
+        return value
+    token = match.group(0)
+    remainder = trimmed[len(token):]
+    lookup_key = token.casefold()
+    full_name = ABBREVIATION_TO_STATE_NAME.get(token.upper())
+    if full_name is None and lookup_key in STATE_NAME_TO_ABBREVIATION:
+        full_name = lookup_key
     if full_name is None:
         return value
-    return f"{prefix}, {full_name.title()}"
+    return f"{prefix}, {full_name.title()}{remainder}"
 
 
 def _bottler_name_address_result(extracted: str | None, submitted: str | None) -> FieldResult:
