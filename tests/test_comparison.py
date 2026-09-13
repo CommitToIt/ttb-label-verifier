@@ -165,6 +165,27 @@ def test_bottler_name_address_containment_genuinely_different_fails() -> None:
     assert result["bottler_name_address"].status == "fail"
 
 
+def test_bottler_name_address_state_abbreviation_vs_full_name_passes() -> None:
+    result = compare_label_fields(
+        extracted(bottler_name_address="Frankfort, KY"), application(bottler_name_address="Frankfort, Kentucky")
+    )
+    assert result["bottler_name_address"].status == "pass"
+
+
+def test_bottler_name_address_state_word_elsewhere_in_string_unaffected() -> None:
+    result = compare_label_fields(
+        extracted(bottler_name_address="IN THE HEART OF BOURBON COUNTRY, Frankfort, KY"),
+        application(bottler_name_address="IN THE HEART OF BOURBON COUNTRY, Frankfort, Kentucky"),
+    )
+    assert result["bottler_name_address"].status == "pass"
+
+    or_result = compare_label_fields(
+        extracted(bottler_name_address="OR SO THE LEGEND GOES DISTILLERY, Frankfort, KY"),
+        application(bottler_name_address="OR SO THE LEGEND GOES DISTILLERY, Frankfort, Kentucky"),
+    )
+    assert or_result["bottler_name_address"].status == "pass"
+
+
 def test_country_of_origin_identical_values_pass() -> None:
     assert compare_label_fields(extracted(), application())["country_of_origin"].status == "pass"
 

@@ -15,6 +15,61 @@ FUZZY_REVIEW_THRESHOLD = 75
 ALCOHOL_TOLERANCE = 0.1
 NET_CONTENTS_TOLERANCE_ML = 1.0
 
+STATE_NAME_TO_ABBREVIATION = {
+    "alabama": "AL",
+    "alaska": "AK",
+    "arizona": "AZ",
+    "arkansas": "AR",
+    "california": "CA",
+    "colorado": "CO",
+    "connecticut": "CT",
+    "delaware": "DE",
+    "district of columbia": "DC",
+    "florida": "FL",
+    "georgia": "GA",
+    "hawaii": "HI",
+    "idaho": "ID",
+    "illinois": "IL",
+    "indiana": "IN",
+    "iowa": "IA",
+    "kansas": "KS",
+    "kentucky": "KY",
+    "louisiana": "LA",
+    "maine": "ME",
+    "maryland": "MD",
+    "massachusetts": "MA",
+    "michigan": "MI",
+    "minnesota": "MN",
+    "mississippi": "MS",
+    "missouri": "MO",
+    "montana": "MT",
+    "nebraska": "NE",
+    "nevada": "NV",
+    "new hampshire": "NH",
+    "new jersey": "NJ",
+    "new mexico": "NM",
+    "new york": "NY",
+    "north carolina": "NC",
+    "north dakota": "ND",
+    "ohio": "OH",
+    "oklahoma": "OK",
+    "oregon": "OR",
+    "pennsylvania": "PA",
+    "rhode island": "RI",
+    "south carolina": "SC",
+    "south dakota": "SD",
+    "tennessee": "TN",
+    "texas": "TX",
+    "utah": "UT",
+    "vermont": "VT",
+    "virginia": "VA",
+    "washington": "WA",
+    "west virginia": "WV",
+    "wisconsin": "WI",
+    "wyoming": "WY",
+}
+ABBREVIATION_TO_STATE_NAME = {abbr: name for name, abbr in STATE_NAME_TO_ABBREVIATION.items()}
+
 
 def _result(
     status: str, reason: str | None = None, score: float | None = None
@@ -45,6 +100,28 @@ def _fuzzy_result(field_name: str, extracted: str | None, submitted: str | None)
 
 def _country_of_origin_result(extracted: str | None, submitted: str | None) -> FieldResult:
     return _containment_or_fuzzy_result("country of origin", extracted, submitted)
+
+
+def _normalize_trailing_state(value: str | None) -> str | None:
+    if not value or "," not in value:
+        return value
+    prefix, _, last_segment = value.rpartition(",")
+    trimmed = last_segment.strip()
+    lookup_key = trimmed.casefold()
+    full_name = ABBREVIATION_TO_STATE_NAME.get(trimmed.upper()) or (
+        lookup_key if lookup_key in STATE_NAME_TO_ABBREVIATION else None
+    )
+    if full_name is None:
+        return value
+    return f"{prefix}, {full_name.title()}"
+
+
+def _bottler_name_address_result(extracted: str | None, submitted: str | None) -> FieldResult:
+    return _containment_or_fuzzy_result(
+        "bottler name/address",
+        _normalize_trailing_state(extracted),
+        _normalize_trailing_state(submitted),
+    )
 
 
 def _containment_or_fuzzy_result(
@@ -140,8 +217,8 @@ def compare_label_fields(
         "class_type": _fuzzy_result("class/type", extracted.class_type, submitted.class_type),
         "alcohol_content": _alcohol_result(extracted.alcohol_content, submitted.alcohol_content),
         "net_contents": _net_contents_result(extracted.net_contents, submitted.net_contents),
-        "bottler_name_address": _containment_or_fuzzy_result(
-            "bottler name/address", extracted.bottler_name_address, submitted.bottler_name_address
+        "bottler_name_address": _bottler_name_address_result(
+            extracted.bottler_name_address, submitted.bottler_name_address
         ),
         "government_warning_text": _warning_text_result(extracted.government_warning_text),
     }
